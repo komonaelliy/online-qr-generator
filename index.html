@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator - Free Online Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -510,18 +511,32 @@
                 const qr = qrcode(0, 'H');
                 qr.addData(qrData);
                 qr.make();
-                const qrCanvas = qr.createCanvas(10, 0);
 
+                // Create a canvas to render the QR code
+                const boxSize = 10;
+                const moduleCount = qr.getModuleCount();
+                const size = moduleCount * boxSize;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Fill background
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, size, size);
+
+                // Draw QR code
+                for (let row = 0; row < moduleCount; row++) {
+                    for (let col = 0; col < moduleCount; col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillStyle = qrColor;
+                            ctx.fillRect(col * boxSize, row * boxSize, boxSize, boxSize);
+                        }
+                    }
+                }
+
+                // Add logo if selected
                 if (logoImage && document.getElementById('logoSize').value > 0) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const size = qrCanvas.width;
-                    canvas.width = size;
-                    canvas.height = size;
-                    ctx.fillStyle = bgColor;
-                    ctx.fillRect(0, 0, size, size);
-                    ctx.drawImage(qrCanvas, 0, 0);
-
                     const logoSizePercent = document.getElementById('logoSize').value;
                     const logoSize = size * (logoSizePercent / 100);
                     const logo = new Image();
@@ -541,13 +556,13 @@
                     };
                 } else {
                     document.getElementById('qrcode').innerHTML = '';
-                    document.getElementById('qrcode').appendChild(qrCanvas);
+                    document.getElementById('qrcode').appendChild(canvas);
                 }
 
                 document.getElementById('qrInfo').textContent = qrInfo;
                 document.getElementById('downloadBtn').disabled = false;
 
-                currentQRCode = { data: qrData, color: qrColor, bgColor: bgColor, element: document.querySelector('#qrcode canvas') };
+                currentQRCode = { data: qrData, color: qrColor, bgColor: bgColor, element: canvas };
                 saveToHistory(qrData, currentQRType);
 
                 logToConsole(`✓ Generated ${currentQRType} QR code: ${qrInfo}`);
@@ -590,7 +605,23 @@
                 const qr = qrcode(0, 'H');
                 qr.addData(data);
                 qr.make();
-                const canvas = qr.createCanvas(10, 0);
+                const boxSize = 10;
+                const moduleCount = qr.getModuleCount();
+                const size = moduleCount * boxSize;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = document.getElementById('bgColor').value;
+                ctx.fillRect(0, 0, size, size);
+                for (let row = 0; row < moduleCount; row++) {
+                    for (let col = 0; col < moduleCount; col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillStyle = document.getElementById('qrColor').value;
+                            ctx.fillRect(col * boxSize, row * boxSize, boxSize, boxSize);
+                        }
+                    }
+                }
                 const dataUrl = canvas.toDataURL('image/png');
                 zip.file(`qr_batch_${index + 1}.png`, dataUrl.split(',')[1], { base64: true });
             });
@@ -659,7 +690,7 @@
         }
 
         function testDomainDetection() {
-            const tests = ['playerkomona.top', 'google.com', 'test@examle.com', '+1234567890', '@username'];
+            const tests = ['playerkomona.top', 'google.com', 'test@example.com', '+1234567890', '@username'];
             logToConsole('=== DOMAIN DETECTION TEST ===');
             tests.forEach(test => {
                 const { data, type } = detectInputType(test);
@@ -687,6 +718,5 @@
         document.getElementById('wifiPassword')?.addEventListener('keypress', e => e.key === 'Enter' && generateQRCode());
         document.getElementById('vcardName')?.addEventListener('keypress', e => e.key === 'Enter' && generateQRCode());
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </body>
 </html>
